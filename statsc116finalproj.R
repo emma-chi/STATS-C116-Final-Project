@@ -1,4 +1,5 @@
 #STATS C116 Final Project 
+# Emma Chi
 
 library(readxl)
 library(rstanarm)
@@ -40,164 +41,8 @@ head(ethnicity)
 df <- data.frame(generation, smas, restraint, eating, shape, weight, global)
 head(df)
 
-df2 <- data.frame(ethnicity.factored, smas, restraint, eating, shape, weight, global)
+df2 <- data.frame(ethnicity, smas, restraint, eating, shape, weight, global)
 head(df2)
-
-#------Model Fitting------#
-#------simple linear model------#
-lm <- lm(global ~ smas + restraint + eating + shape + weight)
-#print(lm)
-summary(lm)
-vif(lm) 
-anova(lm)
-
-lm2 <- lm(smas ~ generation)
-summary(lm2)
-
-lm3 <- lm(global ~ ethnicity.factored)
-summary(lm3)
-
-lm4 <- lm(global ~ generation)
-summary(lm4)
-
-lm <- lm(global ~ ethnicity + restraint + eating + shape + weight)
-#print(lm)
-summary(lm)
-
-#--------linear mixed effects regression-------# 
-fit0 <- stan_lmer(global ~ 1 + smas + (1 + smas | generation),
-  data = df,
-  prior_intercept = normal(location = 0, 
-                           scale = 10, 
-                           autoscale = TRUE))
-summary(fit0, digits=3)
-
-prior_summary(fit0, digits=3)
-
-#------horseshoe prior-----#
-simplefit <- stan_glm(global ~ generation + ethnicity + smas + restraint + eating  + shape + weight,
-                 data=df, 
-                 prior = normal(location = 1, 
-                                scale = 1,
-                                autoscale = TRUE),
-                prior_intercept  = normal(location = 1, 
-                               scale = 2.5,
-                               autoscale = TRUE),
-                 seed=1, refresh=0)
-
-plot(simplefit, "areas", prob = 0.95, prob_outer = 1)
-
-round(coef(simplefit), 2)
-round(posterior_interval(simplefit, prob=0.9), 2)
-
-#-----revised linear mixed effects models-----#
-fit1 <- stan_lmer(global ~ smas + shape + (smas | generation), 
-                         data = df, 
-                         prior = normal(location = 0, # prior on the variable; scale invariant prior; can change location to be vector - separate location for each var
-                                        scale = 10, #forces sd of 10; pos relationship if there's a relationship between var and outcome; location >0
-                                        autoscale = TRUE),
-                         prior_intercept = normal(location = 0, #specifies prior on intercept; int is constant
-                                                  scale = 10, 
-                                                  autoscale = TRUE),
-                         seed = 349)
-summary(fit1)
-plot(fit1, par="smas")
-
-
-fit2 <- stan_lmer(global ~ smas + shape + weight + (smas | generation), 
-                  data = df,
-                  seed = 349)
-prior_summary(fit2, digits=3) #determine priors
-
-oldfit2 <- stan_lmer(global ~ smas + restraint + eating + shape + weight + 
-                       (smas | generation), 
-                     data = df, 
-                     prior = normal(location = 1, 
-                                    scale = 1, 
-                                    autoscale = TRUE),
-                     prior_intercept = normal(location = 2,
-                                              scale = 2.5, 
-                                              autoscale = TRUE),
-                     seed = 349)
-pp_check(newfit2)
-summary(newfit2)
-
-oldfit <- stan_lmer(global ~ smas + (smas | generation), 
-                     data = df,
-                     seed = 345)
-pp_check(oldfit)
-
-newfit1 <- stan_lmer(global ~ smas + restraint + eating + shape + weight + 
-                       (smas + restraint + eating + shape + weight | generation), 
-                     data = df, 
-                     prior = normal(location = 1, 
-                                    scale = 1, 
-                                    autoscale = TRUE),
-                     prior_intercept = normal(location = 1, 
-                                              scale = 2.5, 
-                                              autoscale = TRUE),
-                     seed = 345)
-pp_check(newfit1)
-summary(newfit1)
-
-
-fit3 <- stan_lmer(global ~ smas + shape + weight + (smas | ethnicity.factored), 
-                  data = df2,
-                  seed = 345)
-prior_summary(fit3, digits=3)
-
-
-newfit2 <- stan_lmer(global ~ smas + restraint + eating + shape + weight + (smas + restraint + eating + shape + weight | ethnicity.factored), 
-                     data = df2, 
-                     prior = normal(location = 1,
-                                    scale = 2.5, 
-                                    autoscale = TRUE),
-                     prior_intercept = normal(location = 1, 
-                                              scale = 2.5, 
-                                              autoscale = TRUE),
-                     seed = 345)
-pp_check(newfit2)
-
-
-plot(newfit3,plotfun="dens",
-     pars="Intercept")
-
-
-newfit4 <- stan_lmer(global ~ restraint + eating + shape + weight + 
-                       (smas + restraint + eating + shape + weight | generation), 
-                     data = df, 
-                     prior = normal(location = 1, # prior on the variable; scale invariant prior; can change location to be vector - separate location for each var
-                                    scale = 1, #forces sd of 10; pos relationship if there's a relationship between var and outcome; location >0
-                                    autoscale = TRUE),
-                     prior_intercept = normal(location = 2, #specifies prior on intercept; int is constant
-                                              scale = 2.5, 
-                                              autoscale = TRUE),
-                     seed = 349)
-pp_check(newfit4)
-
-#------model plots------#
-plot(newfit2, par="eating")
-plot(newfit3, par="eating")
-
-plot(newfit2,plotfun="trace",
-     pars="smas")
-plot(newfit3,plotfun="trace",
-     pars="smas")
-
-
-#------evaluating models------#
-loo.1 <- loo(newfit2)
-print(loo.1)
-
-loo.2 <- loo(newfit3)
-print(loo.2)
-
-loo_compare(loo.1, loo.2)
-
-loo.4 <- loo(oldfit2)
-print(loo.4)
-
-loo_compare(loo.1, loo.4)
 
 
 #-----exploratory analysis-----#
@@ -270,7 +115,7 @@ pdf("edeqsubscores.pdf", width=20, height=10)
 
 gen1 <- df %>% filter(generation=="First Generation")
 gen2 <- df %>% filter(generation=="Second Generation")
-  
+
 avgrestraint.1 <- mean(gen1$restraint)
 avgrestraint.2 <- mean(gen2$restraint)
 avgrestraint <- c(avgrestraint.1, avgrestraint.2)
@@ -315,3 +160,141 @@ barplot(height = gfg,beside = TRUE, ylim = c(0,3), xlab = "EDE-Q Subscore", ylab
         args.legend = list(x = "topright", inset = c( 0, -0.3)))
 
 dev.off()
+
+
+#------Model Fitting------#
+#------simple linear model------#
+lm <- lm(global ~ smas + restraint + eating + shape + weight)
+#print(lm)
+summary(lm)
+vif(lm) 
+anova(lm)
+
+lm2 <- lm(smas ~ generation)
+summary(lm2)
+
+lm3 <- lm(global ~ ethnicity)
+summary(lm3)
+
+lm4 <- lm(global ~ generation)
+summary(lm4)
+
+lm <- lm(global ~ ethnicity + restraint + eating + shape + weight)
+print(lm)
+summary(lm)
+
+
+#--------linear mixed effects regression-------# 
+fit0 <- stan_lmer(global ~ 1 + smas + (1 + smas | generation),
+  data = df,
+  prior_intercept = normal(location = 0, 
+                           scale = 10, 
+                           autoscale = TRUE))
+summary(fit0, digits=3)
+prior_summary(fit0, digits=3)
+
+
+#------horseshoe prior-----#
+simplefit <- stan_glm(global ~ generation + ethnicity + smas + restraint + eating  + shape + weight,
+                 data=df, 
+                 prior = normal(location = 1, 
+                                scale = 1,
+                                autoscale = TRUE),
+                prior_intercept  = normal(location = 1, 
+                               scale = 2.5,
+                               autoscale = TRUE),
+                 seed=1, refresh=0)
+
+plot(simplefit, "areas", prob = 0.95, prob_outer = 1)
+
+round(coef(simplefit), 2)
+round(posterior_interval(simplefit, prob=0.9), 2)
+
+
+#-----revised linear mixed effects models-----#
+oldfit <- stan_lmer(global ~ smas +  (smas | generation), 
+                  data = df,
+                  seed = 345)
+pp_check(oldfit)
+
+fit1 <- stan_lmer(global ~ smas + shape + (smas | generation), 
+                         data = df, 
+                         prior = normal(location = 0, # prior on the variable; scale invariant prior; can change location to be vector - separate location for each var
+                                        scale = 10, #forces sd of 10; pos relationship if there's a relationship between var and outcome; location >0
+                                        autoscale = TRUE),
+                         prior_intercept = normal(location = 0, #specifies prior on intercept; int is constant
+                                                  scale = 10, 
+                                                  autoscale = TRUE),
+                         seed = 349)
+summary(fit1)
+plot(fit1, par="smas")
+
+fit2 <- stan_lmer(global ~ smas + shape + weight + (smas | generation), 
+                  data = df,
+                  seed = 349)
+prior_summary(fit2, digits=3) 
+
+oldfit2 <- stan_lmer(global ~ smas + restraint + eating + shape + weight + 
+                       (smas | generation), 
+                     data = df, 
+                     prior = normal(location = 1, 
+                                    scale = 1, 
+                                    autoscale = TRUE),
+                     prior_intercept = normal(location = 2,
+                                              scale = 2.5, 
+                                              autoscale = TRUE),
+                     seed = 349)
+pp_check(oldfit2)
+summary(oldfit2)
+
+newfit1 <- stan_lmer(global ~ smas + restraint + eating + shape + weight + 
+                       (smas + restraint + eating + shape + weight | generation), 
+                     data = df, 
+                     prior = normal(location = 1, 
+                                    scale = 1, 
+                                    autoscale = TRUE),
+                     prior_intercept = normal(location = 1, 
+                                              scale = 2.5, 
+                                              autoscale = TRUE),
+                     seed = 345)
+pp_check(newfit1)
+summary(newfit1)
+
+fit3 <- stan_lmer(global ~ smas + shape + weight + (smas | ethnicity), 
+                  data = df2,
+                  seed = 345)
+prior_summary(fit3, digits=3)
+
+
+newfit2 <- stan_lmer(global ~ smas + restraint + eating + shape + weight + (smas + restraint + eating + shape + weight | ethnicity), 
+                     data = df2, 
+                     prior = normal(location = 1,
+                                    scale = 2.5, 
+                                    autoscale = TRUE),
+                     prior_intercept = normal(location = 1, 
+                                              scale = 2.5, 
+                                              autoscale = TRUE),
+                     seed = 345)
+pp_check(newfit2)
+
+plot(newfit2,plotfun="dens",
+     pars="Intercept")
+
+#------model plots------#
+plot(newfit1, par="eating")
+plot(newfit2, par="eating")
+
+plot(newfit1,plotfun="trace",
+     pars="smas")
+plot(newfit2,plotfun="trace",
+     pars="smas")
+
+
+#------evaluating models------#
+loo.1 <- loo(newfit1)
+print(loo.1)
+
+loo.2 <- loo(newfit2)
+print(loo.2)
+
+loo_compare(loo.1, loo.2)
